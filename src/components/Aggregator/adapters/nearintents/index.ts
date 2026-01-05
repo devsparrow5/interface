@@ -116,7 +116,7 @@ const waitForOrder =
 		setTimeout(poll, POLL_INITIAL_DELAY);
 	};
 
-export async function getQuote(chain: string, from: string, to: string, amount: string, extra) {
+async function fetchQuote(chain: string, from: string, to: string, amount: string, extra, isDry: boolean) {
 	const tokens = await getTokens();
 
 	const fromToken = findToken(chain, from, tokens);
@@ -127,20 +127,19 @@ export async function getQuote(chain: string, from: string, to: string, amount: 
 	}
 
 	const userAddr = extra.userAddress?.toLowerCase() ?? zeroAddress;
-	const isDryRun = !extra.userAddress || extra.userAddress === zeroAddress;
 	const slippageBps = Math.round(Number(extra.slippage || 1) * 100);
 
 	const quoteRequest = {
-		dry: isDryRun,
+		dry: isDry,
 		swapType: 'EXACT_INPUT',
 		slippageTolerance: slippageBps,
 		originAsset: fromToken.assetId,
 		destinationAsset: toToken.assetId,
 		amount,
 		depositType: 'ORIGIN_CHAIN',
-		refundTo: isDryRun ? zeroAddress : userAddr,
+		refundTo: isDry ? zeroAddress : userAddr,
 		refundType: 'ORIGIN_CHAIN',
-		recipient: isDryRun ? zeroAddress : userAddr,
+		recipient: isDry ? zeroAddress : userAddr,
 		recipientType: 'DESTINATION_CHAIN',
 		deadline: new Date(Date.now() + DEADLINE_MINUTES * 60 * 1000).toISOString(),
 		referral: 'llamaswap'
@@ -164,7 +163,7 @@ export async function getQuote(chain: string, from: string, to: string, amount: 
 
 	return {
 		amountReturned: quote.quote.amountOut,
-		amountIn: quote.quote.amountIn || '0',
+		amountIn: quote.quote.amountIn || amount,
 		estimatedGas: 21000,
 		tokenApprovalAddress: null,
 		rawQuote: {
@@ -173,20 +172,39 @@ export async function getQuote(chain: string, from: string, to: string, amount: 
 			toToken,
 			chain,
 			fromAddress: from,
-			userAddress: extra.userAddress
+			userAddress: extra.userAddress,
+			slippage: extra.slippage
 		},
 		logo: 'https://assets.coingecko.com/coins/images/10365/small/near.jpg',
 		isMEVSafe: true
 	};
 }
 
-export async function swap({ chain, rawQuote, from }) {
-	const depositAddress = rawQuote.quote.depositAddress;
-	const amount = rawQuote.quote.amountIn;
+export async function getQuote(chain: string, from: string, to: string, amount: string, extra) {
+	return fetchQuote(chain, from, to, amount, extra, true);
+}
 
-	if (!depositAddress) {
-		throw { reason: 'No deposit address. Please refresh quote.' };
+export async function swap({ chain, rawQuote, from }) {
+	const extra = {
+		userAddress: rawQuote.userAddress,
+		slippage: rawQuote.slippage
+	};
+	const toAddress = rawQuote.toToken.contractAddress || zeroAddress;
+	const liveQuote = await fetchQuote(
+		chain,
+		from,
+		toAddress,
+		rawQuote.quote.amountIn,
+		extra,
+		false
+	);
+
+	if (!liveQuote?.rawQuote?.quote?.depositAddress) {
+		throw { reason: 'Failed to get deposit address. Please try again.' };
 	}
+
+	const depositAddress = liveQuote.rawQuote.quote.depositAddress;
+	const amount = liveQuote.rawQuote.quote.amountIn;
 
 	const isNative = isNativeToken(from);
 	let txHash: string;
