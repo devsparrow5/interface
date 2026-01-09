@@ -271,6 +271,62 @@ const unichain = {
 	iconBackground: '#000'
 };
 
+const hyperevm = {
+	id: 999,
+	name: 'HyperEVM',
+	network: 'hyperevm',
+	iconUrl: chainIconUrl('hyperliquid'),
+	iconBackground: '#000',
+	nativeCurrency: {
+		decimals: 18,
+		name: 'HYPE',
+		symbol: 'HYPE'
+	},
+	rpcUrls: {
+		default: { http: ['https://rpc.hyperliquid.xyz/evm'] }
+	},
+	blockExplorers: {
+		default: {
+			name: 'HyperEVM Explorer',
+			url: 'https://hyperevmscan.io'
+		}
+	},
+	testnet: false,
+	contracts: {
+		multicall3: {
+			address: '0xca11bde05977b3631167028862be2a173976ca11'
+		}
+	}
+};
+
+const monad = {
+	id: 143,
+	name: 'Monad',
+	network: 'monad',
+	iconUrl: chainIconUrl('monad'),
+	iconBackground: '#000',
+	nativeCurrency: {
+		decimals: 18,
+		name: 'MON',
+		symbol: 'MON'
+	},
+	rpcUrls: {
+		default: { http: ['https://rpc.monad.xyz'] }
+	},
+	blockExplorers: {
+		default: {
+			name: 'Monad Explorer',
+			url: 'https://monadscan.com/'
+		}
+	},
+	testnet: false,
+	contracts: {
+		multicall3: {
+			address: '0xca11bde05977b3631167028862be2a173976ca11'
+		}
+	}
+};
+
 interface IChain extends Chain {
 	network: string;
 	iconUrl: string;
@@ -312,5 +368,7 @@ export const allChains: Array<IChain> = [
 	harmony,
 	scroll,
 	sonic,
-	unichain
+	unichain,
+	hyperevm,
+	monad,
 ];

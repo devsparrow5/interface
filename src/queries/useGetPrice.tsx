@@ -32,6 +32,7 @@ type DexScreenerTokenPair = {
 function convertChain(chain: string) {
 	if (chain === 'gnosis') return 'xdai';
 	if (chain === 'zksync') return 'era';
+	if (chain === 'hyperevm') return 'hyperliquid';
 	return chain;
 }
 

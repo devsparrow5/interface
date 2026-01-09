@@ -27,7 +27,9 @@ export const chainToId = {
 	//starknet
 	//telos
 	celo: 42220,
-	scroll: 534352
+	scroll: 534352,
+	hyperevm: 999,
+	monad: 143,
 	//harmony
 	//tron
 };

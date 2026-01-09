@@ -24,11 +24,11 @@ const oneInchChains = {
 	arbitrum: 42161,
 	avax: 43114,
 	gnosis: 100,
-	fantom: 250,
+	//fantom: 250,
 	//klaytn: 8217,
 	base: 8453,
 	zksync: 324,
-	aurora: 1313161554
+	//aurora: 1313161554
 };
 
 const tokensToFix = {
@@ -84,7 +84,7 @@ const allSettled = (promises) =>
 		)
 	);
 
-const chainsToFetchFromKyberswap = [324, 1101, 59144, 534352, 146];
+const chainsToFetchFromKyberswap = [324, 1101, 59144, 534352, 146, 999, 143];
 
 async function getFullCGTokenlist(){
 	const cgCoins = (await fetch("https://api.coingecko.com/api/v3/coins/list?include_platform=true").then(r => r.json())) as {

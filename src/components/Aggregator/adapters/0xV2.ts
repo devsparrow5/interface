@@ -19,7 +19,8 @@ export const chainToId = {
 	blast: '81457',
 	mantle: '5000',
 	mode: '34443',
-	unichain: '130'
+	unichain: '130',
+	monad: '143'
 };
 
 const nativeToken = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';

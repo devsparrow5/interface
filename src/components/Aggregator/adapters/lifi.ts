@@ -21,7 +21,8 @@ export const chainToId = {
 	fuse: 'fus',
 	cronos: 'cro',
 	velas: 'vel',
-	aurora: 'aur'
+	aurora: 'aur',
+	hyperevm: 'hyp'
 };
 export const name = 'LI.FI';
 export const token = null;

@@ -135,7 +135,9 @@ export const rpcUrls: Record<number, Array<string>> = {
 	59144: [getLlamaRpc("linea"), 'https://rpc.linea.build'],
 	534352: [getLlamaRpc("scroll"), 'https://rpc.scroll.io', 'https://scroll-mainnet.public.blastapi.io'],
 	146: [getLlamaRpc("sonic"), 'https://rpc.soniclabs.com', 'https://sonic-rpc.publicnode.com'],
-	130: [getLlamaRpc("unichain"), 'https://unichain-rpc.publicnode.com', 'https://mainnet.unichain.org']
+	130: [getLlamaRpc("unichain"), 'https://unichain-rpc.publicnode.com', 'https://mainnet.unichain.org'],
+	999: [getLlamaRpc("hyperliquid"), 'https://rpc.hyperliquid.xyz/evm'],
+	143: [getLlamaRpc("monad"), 'https://rpc.monad.xyz', 'https://rpc1.monad.xyz', 'https://rpc3.monad.xyz'],
 };
 
 export const rpcsTransports = Object.fromEntries(
