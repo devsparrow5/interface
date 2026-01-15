@@ -44,20 +44,24 @@ const POLL_INITIAL_DELAY = 10_000;
 const MAX_POLL_ATTEMPTS = 120;
 const DEADLINE_MINUTES = 30;
 
-async function getTokens(): Promise<TokenInfo[]> {
+async function getTokens(): Promise<TokenInfo[] | null> {
 	const now = Date.now();
 	if (tokensCache && now - tokensCacheTime < CACHE_TTL) {
 		return tokensCache;
 	}
 
-	const response = await fetch(`${API_BASE}/v0/tokens`);
-	if (!response.ok) {
-		throw new Error('Failed to fetch 1Click tokens');
-	}
+	try {
+		const response = await fetch(`${API_BASE}/v0/tokens`);
+		if (!response.ok) {
+			return tokensCache; // Return stale cache if available, otherwise null
+		}
 
-	tokensCache = await response.json();
-	tokensCacheTime = now;
-	return tokensCache!;
+		tokensCache = await response.json();
+		tokensCacheTime = now;
+		return tokensCache;
+	} catch {
+		return tokensCache; // Return stale cache on network error
+	}
 }
 
 function findToken(chain: string, tokenAddress: string, tokens: TokenInfo[]): TokenInfo | null {
@@ -112,67 +116,74 @@ const waitForOrder =
 	};
 
 async function fetchQuote(chain: string, from: string, to: string, amount: string, extra, isDry: boolean) {
-	const tokens = await getTokens();
+	try {
+		const tokens = await getTokens();
+		if (!tokens) {
+			return null;
+		}
 
-	const fromToken = findToken(chain, from, tokens);
-	const toToken = findToken(chain, to, tokens);
+		const fromToken = findToken(chain, from, tokens);
+		const toToken = findToken(chain, to, tokens);
 
-	if (!fromToken || !toToken) {
+		if (!fromToken || !toToken) {
+			return null;
+		}
+
+		const userAddr = extra.userAddress?.toLowerCase() ?? zeroAddress;
+		const slippageBps = Math.round(Number(extra.slippage || 1) * 100);
+
+		const quoteRequest = {
+			dry: isDry,
+			swapType: 'EXACT_INPUT',
+			slippageTolerance: slippageBps,
+			originAsset: fromToken.assetId,
+			destinationAsset: toToken.assetId,
+			amount,
+			depositType: 'ORIGIN_CHAIN',
+			refundTo: isDry ? zeroAddress : userAddr,
+			refundType: 'ORIGIN_CHAIN',
+			recipient: isDry ? zeroAddress : userAddr,
+			recipientType: 'DESTINATION_CHAIN',
+			deadline: new Date(Date.now() + DEADLINE_MINUTES * 60 * 1000).toISOString(),
+			referral: 'llamaswap'
+		};
+
+		const response = await fetch(`${API_BASE}/v0/quote`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(quoteRequest)
+		});
+
+		if (!response.ok) {
+			return null;
+		}
+
+		const quote = await response.json();
+
+		if (!quote?.quote?.amountOut) {
+			return null;
+		}
+
+		return {
+			amountReturned: quote.quote.amountOut,
+			amountIn: quote.quote.amountIn || amount,
+			estimatedGas: 21000,
+			tokenApprovalAddress: null,
+			rawQuote: {
+				...quote,
+				fromToken,
+				toToken,
+				chain,
+				fromAddress: from,
+				userAddress: extra.userAddress,
+				slippage: extra.slippage
+			},
+			logo: 'https://assets.coingecko.com/coins/images/10365/small/near.jpg',
+			isMEVSafe: true
+		};
+	} catch {
 		return null;
 	}
-
-	const userAddr = extra.userAddress?.toLowerCase() ?? zeroAddress;
-	const slippageBps = Math.round(Number(extra.slippage || 1) * 100);
-
-	const quoteRequest = {
-		dry: isDry,
-		swapType: 'EXACT_INPUT',
-		slippageTolerance: slippageBps,
-		originAsset: fromToken.assetId,
-		destinationAsset: toToken.assetId,
-		amount,
-		depositType: 'ORIGIN_CHAIN',
-		refundTo: isDry ? zeroAddress : userAddr,
-		refundType: 'ORIGIN_CHAIN',
-		recipient: isDry ? zeroAddress : userAddr,
-		recipientType: 'DESTINATION_CHAIN',
-		deadline: new Date(Date.now() + DEADLINE_MINUTES * 60 * 1000).toISOString(),
-		referral: 'llamaswap'
-	};
-
-	const response = await fetch(`${API_BASE}/v0/quote`, {
-		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify(quoteRequest)
-	});
-
-	if (!response.ok) {
-		return null;
-	}
-
-	const quote = await response.json();
-
-	if (!quote?.quote?.amountOut) {
-		return null;
-	}
-
-	return {
-		amountReturned: quote.quote.amountOut,
-		amountIn: quote.quote.amountIn || amount,
-		estimatedGas: 21000,
-		tokenApprovalAddress: null,
-		rawQuote: {
-			...quote,
-			fromToken,
-			toToken,
-			chain,
-			fromAddress: from,
-			userAddress: extra.userAddress,
-			slippage: extra.slippage
-		},
-		logo: 'https://assets.coingecko.com/coins/images/10365/small/near.jpg',
-		isMEVSafe: true
-	};
 }
 
 export async function getQuote(chain: string, from: string, to: string, amount: string, extra) {
