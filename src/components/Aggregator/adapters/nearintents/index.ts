@@ -25,7 +25,6 @@ export function approvalAddress() {
 }
 
 const API_BASE = 'https://1click.chaindefuser.com';
-const nativeToken = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE';
 
 interface TokenInfo {
 	assetId: string;
@@ -61,15 +60,11 @@ async function getTokens(): Promise<TokenInfo[]> {
 	return tokensCache!;
 }
 
-function isNativeToken(address: string): boolean {
-	return address === zeroAddress || address.toLowerCase() === nativeToken.toLowerCase();
-}
-
 function findToken(chain: string, tokenAddress: string, tokens: TokenInfo[]): TokenInfo | null {
 	const blockchain = chainToId[chain];
 	if (!blockchain) return null;
 
-	const isNative = isNativeToken(tokenAddress);
+	const isNative = tokenAddress === zeroAddress;
 
 	return (
 		tokens.find((t) => {
@@ -206,7 +201,7 @@ export async function swap({ chain, rawQuote, from }) {
 	const depositAddress = liveQuote.rawQuote.quote.depositAddress;
 	const amount = liveQuote.rawQuote.quote.amountIn;
 
-	const isNative = isNativeToken(from);
+	const isNative = !liveQuote.rawQuote.fromToken.contractAddress;
 	let txHash: string;
 
 	if (isNative) {
@@ -245,7 +240,7 @@ export const getTx = ({ rawQuote }) => {
 		return {};
 	}
 
-	const isNative = isNativeToken(rawQuote.fromAddress);
+	const isNative = !rawQuote.fromToken?.contractAddress;
 
 	if (isNative) {
 		return {
