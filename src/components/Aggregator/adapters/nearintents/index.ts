@@ -209,6 +209,20 @@ export async function swap({ chain, rawQuote, from }) {
 		throw { reason: 'Failed to get deposit address. Please try again.' };
 	}
 
+	// Validate price hasn't moved beyond slippage tolerance
+	const originalAmountOut = BigInt(rawQuote.quote.amountOut);
+	const liveAmountOut = BigInt(liveQuote.rawQuote.quote.amountOut);
+	const slippageTolerance = rawQuote.slippage ?? 1;
+	const slippageBps = BigInt(Math.round(slippageTolerance * 100));
+	const minAcceptableAmount = originalAmountOut - (originalAmountOut * slippageBps) / BigInt(10000);
+
+	if (originalAmountOut > 0n && liveAmountOut < minAcceptableAmount) {
+		const priceChangePercent = Number(((originalAmountOut - liveAmountOut) * BigInt(10000)) / originalAmountOut) / 100;
+		throw {
+			reason: `Price has moved unfavorably by ${priceChangePercent.toFixed(2)}%, which exceeds your slippage tolerance of ${slippageTolerance.toFixed(2)}%. Please refresh the quote and try again.`
+		};
+	}
+
 	const depositAddress = liveQuote.rawQuote.quote.depositAddress;
 	const amount = liveQuote.rawQuote.quote.amountIn;
 
